@@ -22,6 +22,21 @@ public class DemoView extends VerticalLayout implements HasUrlParameterMapping {
     private TextField textField;
     private TextField modeField;
 
+    public void setMode(String modeParam) {
+        modeField.setEnabled(modeParam != null);
+        modeField.setValue(modeParam == null ? "<null>" : modeParam);
+    }
+
+    public void setLong(Long longParam) {
+        longField.setEnabled(longParam != null);
+        longField.setValue(longParam == null ? "<null>" : longParam.toString());
+    }
+
+    public void setText(String textParam) {
+        textField.setEnabled(textParam != null);
+        textField.setValue(textParam == null ? "<null>" : textParam);
+    }
+
     public DemoView() {
         add(new Html("<pre><code>@UrlParameterMapping(\":long\")\n" +
                 "@UrlParameterMapping(\":text\")\n" +
@@ -60,20 +75,5 @@ public class DemoView extends VerticalLayout implements HasUrlParameterMapping {
         textField.setReadOnly(true);
 
         add(modeField, longField, textField);
-    }
-
-    public void setMode(String modeParam) {
-        modeField.setEnabled(modeParam != null);
-        modeField.setValue(modeParam == null ? "<null>" : modeParam);
-    }
-
-    public void setLong(Long longParam) {
-        longField.setEnabled(longParam != null);
-        longField.setValue(longParam == null ? "<null>" : longParam.toString());
-    }
-
-    public void setText(String textParam) {
-        textField.setEnabled(textParam != null);
-        textField.setValue(textParam == null ? "<null>" : textParam);
     }
 }
