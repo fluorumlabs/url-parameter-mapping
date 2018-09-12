@@ -101,6 +101,8 @@ public class UrlParameterMappingHelper {
                             return groups[1] + groups[2] + ":-?[0-8]?[0-9]{1,18}:"; // -8999999999999999999 to 8999999999999999999
                         } else if (parameterType.isAssignableFrom(Boolean.class)) {
                             return groups[1] + groups[2] + ":true|false:"; // true or false
+                        } else if (parameterType.isAssignableFrom(UUID.class)) {
+                            return groups[1] + groups[2] + ":[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:"; // UUID
                         } else {
                             throw new UrlParameterMappingException(String.format(
                                     "Unsupported parameter type '%s' for class %s.",
@@ -169,6 +171,8 @@ public class UrlParameterMappingHelper {
                 PropertyUtils.setProperty(that, name, Long.valueOf(value));
             } else if (parameterType.isAssignableFrom(Boolean.class)) {
                 PropertyUtils.setProperty(that, name, Boolean.valueOf(value));
+            } else if (parameterType.isAssignableFrom(UUID.class)) {
+                PropertyUtils.setProperty(that, name, UUID.fromString(value));
             } else {
                 throw new UrlParameterMappingException(String.format(
                         "Unsupported parameter type '%s' for class %s.",
