@@ -115,46 +115,67 @@ public class UrlParameterMappingHelper {
 
                 // Add leading / for simplicity
                 if (!routePattern.startsWith("/")) routePattern = "/" + routePattern;
-                // Replace optional segments with proper regex:
-                // [/...] will become (/...)?
-                routePattern = OPTIONAL_PATTERN.matcher(routePattern).replaceAll("(/$1)?");
+
+                Map<String, String> propertyPatterns = new HashMap<>();
+
                 // Expand parameter mapping without regex:
                 // /:param will become /:param:<regex> based on property type
-                routePattern = replaceFunctional(PARAMETER_SIMPLE_PATTERN, routePattern, groups -> {
+                Matcher matcher = PARAMETER_SIMPLE_PATTERN.matcher(routePattern);
+                while (matcher.find()) {
+                    String property = matcher.group(2);
                     try {
-                        Class<?> parameterType = PropertyUtils.getPropertyType(that, groups[2]);
-                        if (parameterType.isAssignableFrom(String.class)) {
-                            return groups[1] + groups[2] + ":[^/]+:";
+                        Class<?> parameterType = PropertyUtils.getPropertyType(that, property);
+                        if (parameterType == null) {
+                            throw new UrlParameterMappingException(String.format(
+                                    "Unknown property '%s' in class %s.",
+                                    property, that.getClass().getSimpleName()));
+                        } else if (parameterType.isAssignableFrom(String.class)) {
+                            propertyPatterns.put(property, "[^/]+");
                         } else if (parameterType.isAssignableFrom(Integer.class)) {
-                            return groups[1] + groups[2] + ":-?[0-1]?[0-9]{1,9}:"; // -1999999999 to 1999999999
+                            propertyPatterns.put(property, "-?[0-1]?[0-9]{1,9}"); // -1999999999 to 1999999999
                         } else if (parameterType.isAssignableFrom(Long.class)) {
-                            return groups[1] + groups[2] + ":-?[0-8]?[0-9]{1,18}:"; // -8999999999999999999 to 8999999999999999999
+                            propertyPatterns.put(property, "-?[0-8]?[0-9]{1,18}"); // -8999999999999999999 to 8999999999999999999
                         } else if (parameterType.isAssignableFrom(Boolean.class)) {
-                            return groups[1] + groups[2] + ":true|false:"; // true or false
+                            propertyPatterns.put(property, "true|false"); // true or false
                         } else if (parameterType.isAssignableFrom(UUID.class)) {
-                            return groups[1] + groups[2] + ":[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:"; // UUID
+                            propertyPatterns.put(property, "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"); // UUID
                         } else {
                             throw new UrlParameterMappingException(String.format(
                                     "Unsupported parameter type '%s' for class %s.",
                                     parameterType, that.getClass().getSimpleName()));
                         }
-
                     } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new UrlParameterMappingException("Cannot get property type of " + that.getClass() + "." + groups[1], e);
+                        throw new UrlParameterMappingException("Cannot get property type of " + that.getClass() + "." + property, e);
                     }
-                });
-                // Collect group names (properties)
-                Matcher matcher = PARAMETER_FULL_PATTERN.matcher(routePattern);
+                }
+
+                // Extract custom regular expressions
+                matcher = PARAMETER_FULL_PATTERN.matcher(routePattern);
                 while (matcher.find()) {
-                    mappingPattern.properties.add(matcher.group(2));
-                    mapping.properties.add(matcher.group(2));
+                    propertyPatterns.put(matcher.group(2), matcher.group(3));
+                }
+                routePattern = matcher.reset().replaceAll("/:$2");
+
+                // Replace optional segments with proper regex:
+                // [/...] will become (/...)?
+                routePattern = OPTIONAL_PATTERN.matcher(routePattern).replaceAll("(/$1)?");
+
+                // Collect group names (properties)
+                for (String property : propertyPatterns.keySet()) {
+                    mappingPattern.properties.add(property);
+                    mapping.properties.add(property);
                 }
                 // Join all patterns with "|"
                 if (patternBuilder.length() > 0) patternBuilder.append("|");
                 // Replace parameter mapping with named capture groups:
-                // /:param:[0-9]+ will become /(?<p0param>[0-9]+)
+                // /:param will become /(?<p0param>...)
                 patternBuilder.append("(?<").append(patternId).append(">")
-                        .append(matcher.reset().replaceAll("/(?<" + patternId + "$2>$3)"))
+                        .append(replaceFunctional
+                                (
+                                        PARAMETER_SIMPLE_PATTERN,
+                                        routePattern,
+                                        matches -> "/(?<" + patternId + matches[2] + ">" + propertyPatterns.get(matches[2]) + ")"
+                                ))
                         .append(")");
 
                 mapping.mappingPatterns.put(patternId, mappingPattern);
