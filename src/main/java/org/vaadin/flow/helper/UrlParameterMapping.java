@@ -7,7 +7,7 @@ import java.lang.annotation.*;
  * <pre><code>@UrlParameterMapping("segment/:parameter:regex:[/:optional_parameter]")</code></pre>
  * Pattern can have one or several terms. Patterns are always expected to match entire path.
  *
- * If multiple patterns are matching, the one with the maximum number of properties is used.
+ * If multiple patterns are matching, the first matched defined pattern is used.
  *
  * The following term types are available:
  *

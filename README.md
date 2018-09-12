@@ -111,7 +111,7 @@ It is also possible to check which of patterns matched:
  
      @Override
      public void beforeEnter(BeforeEnterEvent event) {
-         if ( ORDER_EDIT.equals(getMatchedPattern() ) {
+         if ( isPatternMatched(ORDER_VIEW) ) {
              ...
          } else {
              ...

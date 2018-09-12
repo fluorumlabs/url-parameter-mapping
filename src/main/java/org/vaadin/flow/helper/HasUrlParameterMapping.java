@@ -49,7 +49,7 @@ public interface HasUrlParameterMapping extends HasUrlParameter<String> {
      *
      *         @Override
      *         public void beforeEnter(BeforeEnterEvent event) {
-     *             if ( ORDER_EDIT.equals(getMatchedPattern() ) {
+     *             if ( ORDER_EDIT.equals(getMatchedPattern()) ) {
      *                 ...
      *             } else {
      *                 ...
@@ -64,5 +64,65 @@ public interface HasUrlParameterMapping extends HasUrlParameter<String> {
      */
     default String getMatchedPattern() {
         return UrlParameterMappingHelper.getMatchedPattern(this);
+    }
+
+    /**
+     * Check if specified pattern matched request.
+     * <pre><code>
+     *     @Route(...)
+     *     @UrlParameterMapping(SomeView.ORDER_VIEW)
+     *     @UrlParameterMapping(SomeView.ORDER_EDIT)
+     *     class SomeView extends Div implements HasUrlParameterMapping {
+     *         final static String ORDER_VIEW = ":orderId[/view]";
+     *         final static String ORDER_EDIT = ":orderId/edit";
+     *
+     *         public void setOrderId(Integer orderId) { ... }
+     *
+     *         @Override
+     *         public void beforeEnter(BeforeEnterEvent event) {
+     *             if ( isPatternMatched(ORDER_EDIT) ) {
+     *                 ...
+     *             } else {
+     *                 ...
+     *             }
+     *         }
+     *
+     *         ...
+     *     }
+     * </code></pre>
+     *
+     * @param pattern pattern, as specified in {@link UrlParameterMapping}
+     * @return true if pattern match request, false otherwise
+     */
+    default boolean isPatternMatched(String pattern) {
+        return pattern.equals(getMatchedPattern());
+    }
+
+    /**
+     * Check if any {@link UrlParameterMapping} pattern matched request.
+     * <p>
+     * <pre><code>
+     *     @Route(...)
+     *     @UrlParameterMapping(":orderId")
+     *     class SomeView extends Div implements HasUrlParameterMapping {
+     *         public void setOrderId(Integer orderId) { ... }
+     *
+     *         @Override
+     *         public void beforeEnter(BeforeEnterEvent event) {
+     *             if ( !isPatternMatched() ) {
+     *                 event.rerouteToError(NotFoundException.class);
+     *                 return;
+     *             }
+     *             ...
+     *         }
+     *
+     *         ...
+     *     }
+     * </code></pre>
+     *
+     * @return true if there was match, false otherwise
+     */
+    default boolean isPatternMatched() {
+        return getMatchedPattern() != null;
     }
 }

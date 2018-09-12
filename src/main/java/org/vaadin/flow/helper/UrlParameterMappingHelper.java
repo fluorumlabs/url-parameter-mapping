@@ -37,7 +37,7 @@ public class UrlParameterMappingHelper {
             // There is 1+ match. Find a group that has the most properties.
             Optional<String> longestMatch = mapping.mappingPatterns.keySet().stream()
                     .filter(k -> matcher.group(k) != null)
-                    .sorted(Comparator.comparing(k -> mapping.mappingPatterns.get((String) k).properties.size()).reversed())
+                    .sorted(Comparator.comparing(k -> mapping.mappingPatterns.get(k).index))
                     .findFirst();
             // Go through all properties defined in compiledPattern and call corresponding setters
             longestMatch.ifPresent(patternId -> {
@@ -93,16 +93,13 @@ public class UrlParameterMappingHelper {
                 Mapping.MappingPattern mappingPattern = new Mapping.MappingPattern();
                 mappingPattern.pattern = routePattern;
                 mappingPattern.properties = Collections.synchronizedSet(new HashSet<>());
+                mappingPattern.index = i;
 
                 // Add leading / for simplicity
                 if (!routePattern.startsWith("/")) routePattern = "/" + routePattern;
                 // Replace optional segments with proper regex:
                 // [/...] will become (/...)?
-                Matcher optionalMatcher = OPTIONAL_PATTERN.matcher(routePattern);
-                while (optionalMatcher.find()) {
-                    routePattern = optionalMatcher.replaceAll("(/$1)?");
-                    optionalMatcher = OPTIONAL_PATTERN.matcher(routePattern);
-                }
+                routePattern = OPTIONAL_PATTERN.matcher(routePattern).replaceAll("(/$1)?");
                 // Expand parameter mapping without regex:
                 // /:param will become /:param:<regex> based on property type
                 routePattern = replaceFunctional(PARAMETER_SIMPLE_PATTERN, routePattern, groups -> {
@@ -224,12 +221,12 @@ public class UrlParameterMappingHelper {
         return matcher.appendTail(sb).toString();
     }
 
-
     private UrlParameterMappingHelper() {
     }
 
     static class Mapping {
         static class MappingPattern {
+            int index;
             Set<String> properties;
             String pattern;
         }
