@@ -101,8 +101,8 @@ Multiple mappings are supported:
 When no regular expression is specified, it is automatically derived
 from property type:
 - String: `[^/]+` -- anything up to next slash
-- Integer: `-?[0-1]?[0-9]{0,9}` -- `-1999999999` to `1999999999`
-- Long: `-?[0-8]?[0-9]{0,18}` -- `-8999999999999999999` to `8999999999999999999`
+- Integer: `-?[0-1]?[0-9]{1,9}` -- `-1999999999` to `1999999999`
+- Long: `-?[0-8]?[0-9]{1,18}` -- `-8999999999999999999` to `8999999999999999999`
 - Boolean: `true|false`
 
 ## Development instructions

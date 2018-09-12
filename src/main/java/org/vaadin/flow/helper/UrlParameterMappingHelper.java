@@ -96,9 +96,9 @@ public class UrlParameterMappingHelper {
                         if (parameterType.isAssignableFrom(String.class)) {
                             return groups[1] + groups[2] + ":[^/]+:";
                         } else if (parameterType.isAssignableFrom(Integer.class)) {
-                            return groups[1] + groups[2] + ":-?[0-1]?[0-9]{0,9}:"; // -1999999999 to 1999999999
+                            return groups[1] + groups[2] + ":-?[0-1]?[0-9]{1,9}:"; // -1999999999 to 1999999999
                         } else if (parameterType.isAssignableFrom(Long.class)) {
-                            return groups[1] + groups[2] + ":-?[0-8]?[0-9]{0,18}:"; // -8999999999999999999 to 8999999999999999999
+                            return groups[1] + groups[2] + ":-?[0-8]?[0-9]{1,18}:"; // -8999999999999999999 to 8999999999999999999
                         } else if (parameterType.isAssignableFrom(Boolean.class)) {
                             return groups[1] + groups[2] + ":true|false:"; // true or false
                         } else {
