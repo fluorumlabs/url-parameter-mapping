@@ -1,6 +1,7 @@
 package org.vaadin.flow.helper;
 
 import com.vaadin.flow.internal.AnnotationReader;
+import com.vaadin.flow.router.BeforeEvent;
 import org.apache.commons.beanutils.PropertyUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -21,10 +22,13 @@ public class UrlParameterMappingHelper {
      * Match patterns specified in {@link UrlParameterMapping} annotations to the supplied path
      * and update all associated properties.
      *
+     * Automatically reroute to error specified in {@link RerouteIfNotMatched} annotation if no matches detected
+     *
+     * @param event BeforeEvent passed from {@link HasUrlParameterMapping#setParameter(BeforeEvent, String)}
      * @param that instance of class implementing {@link HasUrlParameterMapping} interface.
      * @param path path that should be matched.
      */
-    public static void match(HasUrlParameterMapping that, String path) {
+    public static void match(BeforeEvent event, HasUrlParameterMapping that, String path) {
         // Clean old matching pattern
         matchedPattern.remove(that);
 
@@ -50,6 +54,11 @@ public class UrlParameterMappingHelper {
                 }
                 matchedPattern.put(that, mapping.mappingPatterns.get(patternId).pattern);
             });
+        } else {
+            if (mapping.rerouteException != null) {
+                event.rerouteToError(mapping.rerouteException);
+                return; // No need to clear properties then
+            }
         }
 
         // Clear all properties which were not updated
@@ -81,6 +90,10 @@ public class UrlParameterMappingHelper {
     private static Mapping getMapping(HasUrlParameterMapping that) {
         return mappings.computeIfAbsent(that.getClass(), c -> {
             Mapping mapping = new Mapping();
+
+            mapping.rerouteException = AnnotationReader.getAnnotationFor(that.getClass(), RerouteIfNotMatched.class)
+                    .map(RerouteIfNotMatched::value)
+                    .orElse(null);
 
             // Get all compiledPattern
             List<UrlParameterMapping> annotations = AnnotationReader.getAnnotationsFor(that.getClass(), UrlParameterMapping.class);
@@ -231,6 +244,7 @@ public class UrlParameterMappingHelper {
             String pattern;
         }
 
+        Class<? extends Exception> rerouteException;
         Pattern compiledPattern;
         final Map<String, MappingPattern> mappingPatterns = new ConcurrentHashMap<>();
         final Set<String> properties = Collections.synchronizedSet(new HashSet<>());

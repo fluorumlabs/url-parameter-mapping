@@ -103,6 +103,8 @@ It is also possible to check which of patterns matched:
  @Route(...)
  @UrlParameterMapping(SomeView.ORDER_VIEW)
  @UrlParameterMapping(SomeView.ORDER_EDIT)
+ // This will rerouteToError(NotFoundException.class) if no matches detected
+ @RerouteIfNotMatched
  class SomeView extends Div implements HasUrlParameterMapping {
      final static String ORDER_VIEW = ":orderId[/view]";
      final static String ORDER_EDIT = ":orderId/edit";

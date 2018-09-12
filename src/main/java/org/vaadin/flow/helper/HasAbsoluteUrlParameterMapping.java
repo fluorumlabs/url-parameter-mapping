@@ -29,7 +29,7 @@ public interface HasAbsoluteUrlParameterMapping extends HasUrlParameterMapping {
      */
     @Override
     default void setParameter(BeforeEvent event, @WildcardParameter String parameter) {
-        UrlParameterMappingHelper.match(this, event.getLocation().getPath());
+        UrlParameterMappingHelper.match(event, this, event.getLocation().getPath());
     }
 
 }

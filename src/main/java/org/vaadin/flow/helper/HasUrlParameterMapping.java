@@ -30,7 +30,7 @@ public interface HasUrlParameterMapping extends HasUrlParameter<String> {
      */
     @Override
     default void setParameter(BeforeEvent event, @WildcardParameter String parameter) {
-        UrlParameterMappingHelper.match(this, parameter);
+        UrlParameterMappingHelper.match(event,this, parameter);
     }
 
     /**
