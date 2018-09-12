@@ -22,6 +22,7 @@ import java.util.UUID;
 @UrlParameterMapping("debug/:text:.*:")
 // Match "uuid/123e4567-e89b-12d3-a456-426655440000"
 @UrlParameterMapping("uuid/:uuid")
+@IgnoreIfNotMatched
 public class DemoView extends HorizontalLayout implements HasUrlParameterMapping, BeforeEnterObserver {
     private TextField patternField;
     private TextField longField;

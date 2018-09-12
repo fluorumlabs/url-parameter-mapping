@@ -6,7 +6,23 @@ the need for flexible parametrized routes still exist. This
 helper implementation lives on top of built in HasUrlParameter
 and provides support for named parameters.
 
-Simple usage example:
+Installing with Maven:
+```xml
+<repository>
+   <id>vaadin-addons</id>
+   <url>http://maven.vaadin.com/vaadin-addons</url>
+</repository>
+```
+
+```xml
+<dependency>
+   <groupId>org.vaadin.helper</groupId>
+   <artifactId>url-parameter-mapping</artifactId>
+   <version>1.0.0-alpha2</version>
+</dependency>
+```
+
+Usage example:
 ```java
 import org.vaadin.flow.helper.*;
 
