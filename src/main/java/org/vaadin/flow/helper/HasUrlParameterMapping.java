@@ -33,4 +33,36 @@ public interface HasUrlParameterMapping extends HasUrlParameter<String> {
         UrlParameterMappingHelper.match(this, parameter);
     }
 
+    /**
+     * Retrieve matched pattern (if any). This allows for pattern-based branching in
+     * BeforeEnter observer:
+     * <p>
+     * <pre><code>
+     *     @Route(...)
+     *     @UrlParameterMapping(SomeView.ORDER_VIEW)
+     *     @UrlParameterMapping(SomeView.ORDER_EDIT)
+     *     class SomeView extends Div implements HasUrlParameterMapping {
+     *         final static String ORDER_VIEW = ":orderId[/view]";
+     *         final static String ORDER_EDIT = ":orderId/edit";
+     *
+     *         public void setOrderId(Integer orderId) { ... }
+     *
+     *         @Override
+     *         public void beforeEnter(BeforeEnterEvent event) {
+     *             if ( ORDER_EDIT.equals(getMatchedPattern() ) {
+     *                 ...
+     *             } else {
+     *                 ...
+     *             }
+     *         }
+     *
+     *         ...
+     *     }
+     * </code></pre>
+     *
+     * @return matched pattern (as specified in {@link UrlParameterMapping} annotation) or {@code null} if nothing matches
+     */
+    default String getMatchedPattern() {
+        return UrlParameterMappingHelper.getMatchedPattern(this);
+    }
 }

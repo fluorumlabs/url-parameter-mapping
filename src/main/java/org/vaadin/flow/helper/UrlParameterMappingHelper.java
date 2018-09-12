@@ -25,26 +25,30 @@ public class UrlParameterMappingHelper {
      * @param path path that should be matched.
      */
     public static void match(HasUrlParameterMapping that, String path) {
+        // Clean old matching pattern
+        matchedPattern.remove(that);
+
         Mapping mapping = getMapping(that);
         // This will hold all un-touched properties
-        Set<String> unsetProperties = new HashSet<>(mapping.allProperties);
+        Set<String> unsetProperties = new HashSet<>(mapping.properties);
 
-        Matcher matcher = mapping.pattern.matcher(path.startsWith("/") ? path : "/" + path);
+        Matcher matcher = mapping.compiledPattern.matcher(path.startsWith("/") ? path : "/" + path);
         if (matcher.find()) {
             // There is 1+ match. Find a group that has the most properties.
-            Optional<String> longestMatch = mapping.propertyMapping.keySet().stream()
+            Optional<String> longestMatch = mapping.mappingPatterns.keySet().stream()
                     .filter(k -> matcher.group(k) != null)
-                    .sorted(Comparator.comparing(k -> mapping.propertyMapping.get((String) k).size()).reversed())
+                    .sorted(Comparator.comparing(k -> mapping.mappingPatterns.get((String) k).properties.size()).reversed())
                     .findFirst();
-            // Go through all properties defined in pattern and call corresponding setters
+            // Go through all properties defined in compiledPattern and call corresponding setters
             longestMatch.ifPresent(patternId -> {
-                for (String propertyId : mapping.propertyMapping.get(patternId)) {
+                for (String propertyId : mapping.mappingPatterns.get(patternId).properties) {
                     String value = matcher.group(patternId + propertyId);
                     if (value != null) {
                         setProperty(that, propertyId, value);
                         unsetProperties.remove(propertyId);
                     }
                 }
+                matchedPattern.put(that, mapping.mappingPatterns.get(patternId).pattern);
             });
         }
 
@@ -54,8 +58,15 @@ public class UrlParameterMappingHelper {
         }
     }
 
-    // Complied parameter mappings go there
+    public static String getMatchedPattern(HasUrlParameterMapping that) {
+        return matchedPattern.get(that);
+    }
+
+    // Complied parameter mappingPatterns go there
     private static Map<Class<? extends HasUrlParameterMapping>, Mapping> mappings = new ConcurrentHashMap<>();
+
+    // Store patterns that were matched per instance
+    private static Map<HasUrlParameterMapping, String> matchedPattern = Collections.synchronizedMap(new WeakHashMap<>());
 
     private static Pattern OPTIONAL_PATTERN = Pattern.compile("\\[/([^/]+)\\]");
     private static Pattern PARAMETER_SIMPLE_PATTERN = Pattern.compile("(/:)([\\w]+)(?![\\w:])");
@@ -69,15 +80,20 @@ public class UrlParameterMappingHelper {
      */
     private static Mapping getMapping(HasUrlParameterMapping that) {
         return mappings.computeIfAbsent(that.getClass(), c -> {
-            Mapping m = new Mapping();
+            Mapping mapping = new Mapping();
 
-            // Get all pattern
+            // Get all compiledPattern
             List<UrlParameterMapping> annotations = AnnotationReader.getAnnotationsFor(that.getClass(), UrlParameterMapping.class);
             StringBuilder patternBuilder = new StringBuilder();
             for (int i = 0; i < annotations.size(); i++) {
                 // Each pattern will have unique id, that will be used for properties
                 String patternId = String.format("p%d", i);
                 String routePattern = annotations.get(i).value();
+
+                Mapping.MappingPattern mappingPattern = new Mapping.MappingPattern();
+                mappingPattern.pattern = routePattern;
+                mappingPattern.properties = Collections.synchronizedSet(new HashSet<>());
+
                 // Add leading / for simplicity
                 if (!routePattern.startsWith("/")) routePattern = "/" + routePattern;
                 // Replace optional segments with proper regex:
@@ -87,8 +103,7 @@ public class UrlParameterMappingHelper {
                     routePattern = optionalMatcher.replaceAll("(/$1)?");
                     optionalMatcher = OPTIONAL_PATTERN.matcher(routePattern);
                 }
-                Set<String> properties = Collections.synchronizedSet(new HashSet<>(5));
-                // Expand parameter mappings without regex:
+                // Expand parameter mapping without regex:
                 // /:param will become /:param:<regex> based on property type
                 routePattern = replaceFunctional(PARAMETER_SIMPLE_PATTERN, routePattern, groups -> {
                     try {
@@ -116,23 +131,23 @@ public class UrlParameterMappingHelper {
                 // Collect group names (properties)
                 Matcher matcher = PARAMETER_FULL_PATTERN.matcher(routePattern);
                 while (matcher.find()) {
-                    properties.add(matcher.group(2));
-                    m.allProperties.add(matcher.group(2));
+                    mappingPattern.properties.add(matcher.group(2));
+                    mapping.properties.add(matcher.group(2));
                 }
                 // Join all patterns with "|"
                 if (patternBuilder.length() > 0) patternBuilder.append("|");
-                // Replace parameter mappings with named capture groups:
+                // Replace parameter mapping with named capture groups:
                 // /:param:[0-9]+ will become /(?<p0param>[0-9]+)
                 patternBuilder.append("(?<").append(patternId).append(">")
                         .append(matcher.reset().replaceAll("/(?<" + patternId + "$2>$3)"))
                         .append(")");
 
-                m.propertyMapping.put(patternId, properties);
+                mapping.mappingPatterns.put(patternId, mappingPattern);
             }
 
-            m.pattern = Pattern.compile("^(" + patternBuilder.toString() + ")$");
+            mapping.compiledPattern = Pattern.compile("^(" + patternBuilder.toString() + ")$");
 
-            return m;
+            return mapping;
         });
     }
 
@@ -214,9 +229,14 @@ public class UrlParameterMappingHelper {
     }
 
     static class Mapping {
-        Pattern pattern;
-        final Map<String, Set<String>> propertyMapping = new ConcurrentHashMap<>();
-        final Set<String> allProperties = Collections.synchronizedSet(new HashSet<>());
+        static class MappingPattern {
+            Set<String> properties;
+            String pattern;
+        }
+
+        Pattern compiledPattern;
+        final Map<String, MappingPattern> mappingPatterns = new ConcurrentHashMap<>();
+        final Set<String> properties = Collections.synchronizedSet(new HashSet<>());
     }
 
 }

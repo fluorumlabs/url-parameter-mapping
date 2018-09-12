@@ -1,4 +1,4 @@
-# URL Parameter Mapping for Flow
+# URL Parameter Mapping for Vaadin Flow
 
 While https://github.com/vaadin/flow/issues/2740 and 
 https://github.com/vaadin/flow/issues/4213 are still in the works, 
@@ -96,6 +96,30 @@ Multiple mappings are supported:
 // - /forum/thread/12345/forum-post-title
 // - /forum/thread/12345/67890
 // - /forum/message/67890
+```
+
+It is also possible to check which of patterns matched:
+```java
+ @Route(...)
+ @UrlParameterMapping(SomeView.ORDER_VIEW)
+ @UrlParameterMapping(SomeView.ORDER_EDIT)
+ class SomeView extends Div implements HasUrlParameterMapping {
+     final static String ORDER_VIEW = ":orderId[/view]";
+     final static String ORDER_EDIT = ":orderId/edit";
+ 
+     public void setOrderId(Integer orderId) { ... }
+ 
+     @Override
+     public void beforeEnter(BeforeEnterEvent event) {
+         if ( ORDER_EDIT.equals(getMatchedPattern() ) {
+             ...
+         } else {
+             ...
+         }
+     }
+ 
+     ...
+ }
 ```
 
 When no regular expression is specified, it is automatically derived
