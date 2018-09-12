@@ -15,11 +15,11 @@ import org.vaadin.flow.helper.*;
 @Route("example")
 @UrlParameterMapping(":exampleId")
 // Will match /example/12345 and call setExampleId(12345)
+// Otherwise user will be rerouted to default NotFoundException view
 class MyView extends Div implements HasUrlParameterMapping {
     private Integer exampleId;
     
     public void setExampleId(Integer exampleId) {
-        // setExampleId(null) will be called if the route won't match
         this.exampleId = exampleId;
     }
     
@@ -31,7 +31,8 @@ Optional parameters are supported:
 ```java
 @Route("example")
 @UrlParameterMapping(":exampleId[/:version]")
-// Will match /example/12345 and /example/12345/678 
+// Will match /example/12345 and /example/12345/678
+// version property will receive null when missing 
 ```
 
 Static segments are supported:
@@ -103,8 +104,6 @@ It is also possible to check which of patterns matched:
  @Route(...)
  @UrlParameterMapping(SomeView.ORDER_VIEW)
  @UrlParameterMapping(SomeView.ORDER_EDIT)
- // This will rerouteToError(NotFoundException.class) if no matches detected
- @RerouteIfNotMatched
  class SomeView extends Div implements HasUrlParameterMapping {
      final static String ORDER_VIEW = ":orderId[/view]";
      final static String ORDER_EDIT = ":orderId/edit";
@@ -123,6 +122,11 @@ It is also possible to check which of patterns matched:
      ...
  }
 ```
+
+If no matches are detected, automatic `rerouteToError(NotFoundException.class)` will
+be performed. It's possible to use custom exception using `@RerouteIfNotMatched(...)` 
+annotation, or disable this feature completely using `@IgnoreIfNotMatched` annotation.
+In this case you can check if there were any matches using `isPatternMatched()` call.
 
 When no regular expression is specified, it is automatically derived
 from property type:

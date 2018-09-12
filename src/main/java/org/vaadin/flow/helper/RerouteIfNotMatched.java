@@ -16,11 +16,14 @@ import java.lang.annotation.Target;
  *     @Route(...)
  *     @UrlParameterMapping(SomeView.ORDER_VIEW)
  *     @UrlParameterMapping(SomeView.ORDER_EDIT)
- *     @RerouteIfNotMatched
+ *     @RerouteIfNotMatched(NoOrderException.class)
  * </code></pre>
  *
  * @author Artem Godin
+ * @see IgnoreIfNotMatched
  * @see UrlParameterMapping
+ * @see HasUrlParameterMapping
+ * @see HasAbsoluteUrlParameterMapping
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

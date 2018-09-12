@@ -2,6 +2,7 @@ package org.vaadin.flow.helper;
 
 import com.vaadin.flow.internal.AnnotationReader;
 import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.NotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -22,7 +23,9 @@ public class UrlParameterMappingHelper {
      * Match patterns specified in {@link UrlParameterMapping} annotations to the supplied path
      * and update all associated properties.
      *
-     * Automatically reroute to error specified in {@link RerouteIfNotMatched} annotation if no matches detected
+     * Automatically reroutes to {@code NotFoundException} or other error specified in {@link
+     * RerouteIfNotMatched} annotation if no matches detected, unless {@link IgnoreIfNotMatched} annotation is
+     * present.
      *
      * @param event BeforeEvent passed from {@link HasUrlParameterMapping#setParameter(BeforeEvent, String)}
      * @param that instance of class implementing {@link HasUrlParameterMapping} interface.
@@ -91,9 +94,11 @@ public class UrlParameterMappingHelper {
         return mappings.computeIfAbsent(that.getClass(), c -> {
             Mapping mapping = new Mapping();
 
-            mapping.rerouteException = AnnotationReader.getAnnotationFor(that.getClass(), RerouteIfNotMatched.class)
-                    .map(RerouteIfNotMatched::value)
-                    .orElse(null);
+            AnnotationReader.getAnnotationFor(that.getClass(), RerouteIfNotMatched.class)
+                    .ifPresent(rerouteIfNotMatched -> mapping.rerouteException = rerouteIfNotMatched.value());
+
+            AnnotationReader.getAnnotationFor(that.getClass(), IgnoreIfNotMatched.class)
+                    .ifPresent(ignoreIfNotMatched -> mapping.rerouteException = null);
 
             // Get all compiledPattern
             List<UrlParameterMapping> annotations = AnnotationReader.getAnnotationsFor(that.getClass(), UrlParameterMapping.class);
@@ -244,7 +249,7 @@ public class UrlParameterMappingHelper {
             String pattern;
         }
 
-        Class<? extends Exception> rerouteException;
+        Class<? extends Exception> rerouteException = NotFoundException.class;
         Pattern compiledPattern;
         final Map<String, MappingPattern> mappingPatterns = new ConcurrentHashMap<>();
         final Set<String> properties = Collections.synchronizedSet(new HashSet<>());
