@@ -3,6 +3,7 @@ package org.vaadin.flow.helper;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.WildcardParameter;
+import org.vaadin.flow.helper.internal.UrlParameterMappingHelper;
 
 /**
  * Helper interface that enables use of {@link UrlParameterMapping} annotation. This interface

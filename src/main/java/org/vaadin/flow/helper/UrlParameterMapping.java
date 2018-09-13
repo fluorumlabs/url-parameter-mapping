@@ -15,11 +15,11 @@ import java.lang.annotation.*;
  *
  * Example: <pre>"test"</pre> will match only <pre>/test</pre>. It will not match <pre>/testing</pre>.
  *
- * <strong>Parameter mapping: <pre>:parameter:regex:</pre></strong>
- * Parameter is the propery name that will receive the value if matched or {@code null} otherwise. Only
- * {@code String}, {@code Long}, {@code Integer} and {@code Boolean} properties are supported. Regex is
- * a normal Java {@link java.util.regex.Pattern} regular expression, that can be used to specify
- * the expected parameter format.
+ * <strong>Parameter mapping: <pre>:parameter</pre></strong>
+ * Parameter is field/method annotated with {@link UrlParameter} that will receive the value if matched or {@code null} otherwise. Only
+ * {@code String}, {@code Long}, {@code Integer} and {@code Boolean} properties are supported. It is possible
+ * to specify custom regular expressions either with {@link UrlParameter#regEx()} or with extended syntax:
+ * <pre>:parameter:regular-expression:</pre>.
  *
  * Example 1: <pre>"entry/:id"</pre> will match <pre>/entry/12345</pre> and will not match
  * <pre>/entry/12345/edit</pre> or <pre>/entry/12345a</pre>. Integer property {@code id} will receive the value of {@code "12345"}.
@@ -43,6 +43,7 @@ import java.lang.annotation.*;
  * </ul>
  *
  * @author Artem Godin
+ * @see UrlParameter
  * @see HasUrlParameterMapping
  * @see HasAbsoluteUrlParameterMapping
  */

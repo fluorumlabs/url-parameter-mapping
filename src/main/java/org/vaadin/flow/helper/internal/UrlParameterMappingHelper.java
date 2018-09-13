@@ -1,16 +1,15 @@
-package org.vaadin.flow.helper;
+package org.vaadin.flow.helper.internal;
 
 import com.vaadin.flow.internal.AnnotationReader;
 import com.vaadin.flow.router.BeforeEvent;
-import com.vaadin.flow.router.NotFoundException;
-import org.apache.commons.beanutils.PropertyUtils;
+import org.vaadin.flow.helper.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Helper class for {@link UrlParameterMapping} matching. Not indented for direct use.
@@ -22,40 +21,39 @@ public class UrlParameterMappingHelper {
     /**
      * Match patterns specified in {@link UrlParameterMapping} annotations to the supplied path
      * and update all associated properties.
-     *
+     * <p>
      * Automatically reroutes to {@code NotFoundException} or other error specified in {@link
      * RerouteIfNotMatched} annotation if no matches detected, unless {@link IgnoreIfNotMatched} annotation is
      * present.
      *
      * @param event BeforeEvent passed from {@link HasUrlParameterMapping#setParameter(BeforeEvent, String)}
-     * @param that instance of class implementing {@link HasUrlParameterMapping} interface.
-     * @param path path that should be matched.
+     * @param that  instance of class implementing {@link HasUrlParameterMapping} interface.
+     * @param path  path that should be matched.
      */
     public static void match(BeforeEvent event, HasUrlParameterMapping that, String path) {
         // Clean old matching pattern
         matchedPattern.remove(that);
 
         Mapping mapping = getMapping(that);
-        // This will hold all un-touched properties
-        Set<String> unsetProperties = new HashSet<>(mapping.properties);
+        Set<String> unsetParameters = new HashSet<>(mapping.parameters.keySet());
 
         Matcher matcher = mapping.compiledPattern.matcher(path.startsWith("/") ? path : "/" + path);
         if (matcher.find()) {
             // There is 1+ match. Find a group that has the most properties.
-            Optional<String> longestMatch = mapping.mappingPatterns.keySet().stream()
-                    .filter(k -> matcher.group(k) != null)
-                    .sorted(Comparator.comparing(k -> mapping.mappingPatterns.get(k).index))
+            Optional<Mapping.MappingPattern> longestMatch = mapping.mappingPatterns.stream()
+                    .filter(pattern -> matcher.group(pattern.id) != null)
+                    .sorted(Comparator.comparing(pattern -> pattern.index))
                     .findFirst();
             // Go through all properties defined in compiledPattern and call corresponding setters
-            longestMatch.ifPresent(patternId -> {
-                for (String propertyId : mapping.mappingPatterns.get(patternId).properties) {
-                    String value = matcher.group(patternId + propertyId);
+            longestMatch.ifPresent(match -> {
+                for (String parameter : match.parameters) {
+                    String value = matcher.group(match.id + parameter);
                     if (value != null) {
-                        setProperty(that, propertyId, value);
-                        unsetProperties.remove(propertyId);
+                        mapping.parameters.get(parameter).set(that, value);
+                        unsetParameters.remove(parameter);
                     }
                 }
-                matchedPattern.put(that, mapping.mappingPatterns.get(patternId).pattern);
+                matchedPattern.put(that, match.pattern);
             });
         } else {
             if (mapping.rerouteException != null) {
@@ -64,9 +62,8 @@ public class UrlParameterMappingHelper {
             }
         }
 
-        // Clear all properties which were not updated
-        for (String property : unsetProperties) {
-            clearProperty(that, property);
+        for (String unsetParameter : unsetParameters) {
+            mapping.parameters.get(unsetParameter).clear(that);
         }
     }
 
@@ -100,6 +97,27 @@ public class UrlParameterMappingHelper {
             AnnotationReader.getAnnotationFor(that.getClass(), IgnoreIfNotMatched.class)
                     .ifPresent(ignoreIfNotMatched -> mapping.rerouteException = null);
 
+            // Collect all declared UrlParameters
+            Stream.of(that.getClass().getDeclaredFields())
+                    .filter(field -> field.getAnnotation(UrlParameter.class) != null)
+                    .forEach(field -> {
+                        UrlParameter annotation = field.getAnnotation(UrlParameter.class);
+                        String name = annotation.name().isEmpty() ? field.getName() : annotation.name();
+                        mapping.parameters.put(name, new Mapping.Parameter(field));
+                    });
+
+            Stream.of(that.getClass().getDeclaredMethods())
+                    .filter(method -> method.getAnnotation(UrlParameter.class) != null && method.getParameterCount() == 1)
+                    .forEach(method -> {
+                        UrlParameter annotation = method.getAnnotation(UrlParameter.class);
+                        String computedName = method.getName();
+                        if (computedName.length() > 3 && computedName.startsWith("set")) {
+                            computedName = computedName.substring(3, 4).toLowerCase() + computedName.substring(4);
+                        }
+                        String name = annotation.name().isEmpty() ? computedName : annotation.name();
+                        mapping.parameters.put(name, new Mapping.Parameter(method));
+                    });
+
             // Get all compiledPattern
             List<UrlParameterMapping> annotations = AnnotationReader.getAnnotationsFor(that.getClass(), UrlParameterMapping.class);
             StringBuilder patternBuilder = new StringBuilder();
@@ -108,51 +126,31 @@ public class UrlParameterMappingHelper {
                 String patternId = String.format("p%d", i);
                 String routePattern = annotations.get(i).value();
 
+                Map<String, String> parameterRegEx = new HashMap<>();
+
                 Mapping.MappingPattern mappingPattern = new Mapping.MappingPattern();
+                mappingPattern.id = patternId;
                 mappingPattern.pattern = routePattern;
-                mappingPattern.properties = Collections.synchronizedSet(new HashSet<>());
+                mappingPattern.parameters = new HashSet<>();
                 mappingPattern.index = i;
 
                 // Add leading / for simplicity
                 if (!routePattern.startsWith("/")) routePattern = "/" + routePattern;
 
-                Map<String, String> propertyPatterns = new HashMap<>();
-
                 // Expand parameter mapping without regex:
                 // /:param will become /:param:<regex> based on property type
                 Matcher matcher = PARAMETER_SIMPLE_PATTERN.matcher(routePattern);
                 while (matcher.find()) {
-                    String property = matcher.group(2);
-                    try {
-                        Class<?> parameterType = PropertyUtils.getPropertyType(that, property);
-                        if (parameterType == null) {
-                            throw new UrlParameterMappingException(String.format(
-                                    "Unknown property '%s' in class %s.",
-                                    property, that.getClass().getSimpleName()));
-                        } else if (parameterType.isAssignableFrom(String.class)) {
-                            propertyPatterns.put(property, "[^/]+");
-                        } else if (parameterType.isAssignableFrom(Integer.class)) {
-                            propertyPatterns.put(property, "-?[0-1]?[0-9]{1,9}"); // -1999999999 to 1999999999
-                        } else if (parameterType.isAssignableFrom(Long.class)) {
-                            propertyPatterns.put(property, "-?[0-8]?[0-9]{1,18}"); // -8999999999999999999 to 8999999999999999999
-                        } else if (parameterType.isAssignableFrom(Boolean.class)) {
-                            propertyPatterns.put(property, "true|false"); // true or false
-                        } else if (parameterType.isAssignableFrom(UUID.class)) {
-                            propertyPatterns.put(property, "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"); // UUID
-                        } else {
-                            throw new UrlParameterMappingException(String.format(
-                                    "Unsupported parameter type '%s' for class %s.",
-                                    parameterType, that.getClass().getSimpleName()));
-                        }
-                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new UrlParameterMappingException("Cannot get property type of " + that.getClass() + "." + property, e);
-                    }
+                    String parameterName = matcher.group(2);
+                    mappingPattern.parameters.add(parameterName);
                 }
 
                 // Extract custom regular expressions
                 matcher = PARAMETER_FULL_PATTERN.matcher(routePattern);
                 while (matcher.find()) {
-                    propertyPatterns.put(matcher.group(2), matcher.group(3));
+                    String parameterName = matcher.group(2);
+                    parameterRegEx.put(parameterName, matcher.group(3));
+                    mappingPattern.parameters.add(parameterName);
                 }
                 routePattern = matcher.reset().replaceAll("/:$2");
 
@@ -160,11 +158,6 @@ public class UrlParameterMappingHelper {
                 // [/...] will become (/...)?
                 routePattern = OPTIONAL_PATTERN.matcher(routePattern).replaceAll("(/$1)?");
 
-                // Collect group names (properties)
-                for (String property : propertyPatterns.keySet()) {
-                    mappingPattern.properties.add(property);
-                    mapping.properties.add(property);
-                }
                 // Join all patterns with "|"
                 if (patternBuilder.length() > 0) patternBuilder.append("|");
                 // Replace parameter mapping with named capture groups:
@@ -174,64 +167,27 @@ public class UrlParameterMappingHelper {
                                 (
                                         PARAMETER_SIMPLE_PATTERN,
                                         routePattern,
-                                        matches -> "/(?<" + patternId + matches[2] + ">" + propertyPatterns.get(matches[2]) + ")"
+                                        matches -> {
+                                            Mapping.Parameter parameter = mapping.parameters.get(matches[2]);
+                                            if (parameter == null) {
+                                                throw new UrlParameterMappingException(String.format(
+                                                        "Unknown parameter '%s' in class %s.",
+                                                        matches[2], that.getClass().getSimpleName()));
+                                            }
+                                            return "/(?<" + patternId + matches[2] + ">"
+                                                    + parameterRegEx.getOrDefault(matches[2], parameter.getRegex(that))
+                                                    + ")";
+                                        }
                                 ))
                         .append(")");
 
-                mapping.mappingPatterns.put(patternId, mappingPattern);
+                mapping.mappingPatterns.add(mappingPattern);
             }
 
             mapping.compiledPattern = Pattern.compile("^(" + patternBuilder.toString() + ")$");
 
             return mapping;
         });
-    }
-
-    /**
-     * Set specified bean property to {@code null} value
-     *
-     * @param that class implementing {@link HasUrlParameterMapping}
-     * @param name name of bean property
-     * @throws UrlParameterMappingException if there was an error
-     */
-    private static void clearProperty(HasUrlParameterMapping that, String name) {
-        try {
-            PropertyUtils.setProperty(that, name, null);
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            throw new UrlParameterMappingException("Cannot clear property: " + name, e);
-        }
-    }
-
-    /**
-     * Set specified bean property
-     *
-     * @param that  class implementing {@link HasUrlParameterMapping}
-     * @param name  name of bean property
-     * @param value value to set. It will be converted to the property type.
-     * @throws UrlParameterMappingException if there was an error
-     */
-    private static void setProperty(HasUrlParameterMapping that, String name, String value) {
-        try {
-            Class<?> parameterType = PropertyUtils.getPropertyDescriptor(that, name).getPropertyType();
-
-            if (parameterType.isAssignableFrom(String.class)) {
-                PropertyUtils.setProperty(that, name, value);
-            } else if (parameterType.isAssignableFrom(Integer.class)) {
-                PropertyUtils.setProperty(that, name, Integer.valueOf(value));
-            } else if (parameterType.isAssignableFrom(Long.class)) {
-                PropertyUtils.setProperty(that, name, Long.valueOf(value));
-            } else if (parameterType.isAssignableFrom(Boolean.class)) {
-                PropertyUtils.setProperty(that, name, Boolean.valueOf(value));
-            } else if (parameterType.isAssignableFrom(UUID.class)) {
-                PropertyUtils.setProperty(that, name, UUID.fromString(value));
-            } else {
-                throw new UrlParameterMappingException(String.format(
-                        "Unsupported parameter type '%s' for class %s.",
-                        parameterType, that.getClass().getSimpleName()));
-            }
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            throw new UrlParameterMappingException("Cannot set property: " + name + " to value \"" + value + "\"", e);
-        }
     }
 
     /**
@@ -261,19 +217,6 @@ public class UrlParameterMappingHelper {
     }
 
     private UrlParameterMappingHelper() {
-    }
-
-    static class Mapping {
-        static class MappingPattern {
-            int index;
-            Set<String> properties;
-            String pattern;
-        }
-
-        Class<? extends Exception> rerouteException = NotFoundException.class;
-        Pattern compiledPattern;
-        final Map<String, MappingPattern> mappingPatterns = new ConcurrentHashMap<>();
-        final Set<String> properties = Collections.synchronizedSet(new HashSet<>());
     }
 
 }

@@ -29,16 +29,16 @@ import org.vaadin.flow.helper.*;
 ...
 
 @Route("example")
-@UrlParameterMapping(":exampleId")
+@UrlParameterMapping(":exampleId/:orderId")
 // Will match /example/12345 and call setExampleId(12345)
 // Otherwise user will be rerouted to default NotFoundException view
 class MyView extends Div implements HasUrlParameterMapping {
-    private Integer exampleId;
+    // Note: parameter fields/setters should be public    
+    @UrlParameter
+    public Integer exampleId;
     
-    public void setExampleId(Integer exampleId) {
-        this.exampleId = exampleId;
-    }
-    
+    @UrlParameter(name = "orderId", regEx = "ORD[0-9]{6}") 
+    public setOrder(String order) { ... }
     ...
 }
 ```  
@@ -83,12 +83,10 @@ import org.vaadin.flow.helper.*;
 // Will match /example/12345 and call setExampleId(12345)
 class MyView extends Div implements HasAbsoluteUrlParameterMapping {
     //                         note ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    private Integer exampleId;
+    @UrlParameter
+    public Integer exampleId;
     
-    public void setExampleId(Integer exampleId) {
-        // setExampleId(null) will be called if the route won't match
-        this.exampleId = exampleId;
-    }
+    // exampleId will be null if the route won't match
     
     ...
 }
@@ -97,15 +95,18 @@ class MyView extends Div implements HasAbsoluteUrlParameterMapping {
 Regular expressions are supported:
 ```java
 @Route("new-message")
-@UrlParameterMapping(":userId:[0-9]{1,6}:")
-// Will match /new-message/123456
+@UrlParameterMapping(":userId")
+...
+@UrlParameter(regEx="[0-9]{1,6}")
+Integer userId;
+// Will match /new-message/123456, but not /new-message/1234567
 ```
 
 Multiple mappings are supported:
 ```java
 @Route("forum/thread")
 @RouteAlias("forum/message")
-@UrlParameterMapping("forum/thread/:threadId[/:urlTitle:.*:]")
+@UrlParameterMapping("forum/thread/:threadId[/:urlTitle]")
 @UrlParameterMapping("forum/thread/:threadId/:messageId")
 @UrlParameterMapping("forum/message/:messageId")
 // Will match (with HasAbsoluteUrlParameterMapping)
@@ -124,7 +125,8 @@ It is also possible to check which of patterns matched:
      final static String ORDER_VIEW = ":orderId[/view]";
      final static String ORDER_EDIT = ":orderId/edit";
  
-     public void setOrderId(Integer orderId) { ... }
+     @UrlParameter(name = "orderId")
+     public void setOrder(Integer orderId) { ... }
  
      @Override
      public void beforeEnter(BeforeEnterEvent event) {
@@ -144,8 +146,8 @@ be performed. It's possible to use custom exception using `@RerouteIfNotMatched(
 annotation, or disable this feature completely using `@IgnoreIfNotMatched` annotation.
 In this case you can check if there were any matches using `isPatternMatched()` call.
 
-When no regular expression is specified, it is automatically derived
-from property type:
+When no custom regular expression is specified, it is automatically derived
+from field/method type:
 - String: `[^/]+` -- anything up to next slash
 - Integer: `-?[0-1]?[0-9]{1,9}` -- `-1999999999` to `1999999999`
 - Long: `-?[0-8]?[0-9]{1,18}` -- `-8999999999999999999` to `8999999999999999999`

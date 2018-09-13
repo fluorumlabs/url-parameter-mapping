@@ -17,7 +17,7 @@ import java.util.UUID;
 // Match "abcde"
 @UrlParameterMapping(":text")
 // Match "test/abcde" or "production/abcde" or "test/abcde/12345" or "production/abcde/12345"
-@UrlParameterMapping(":mode:test|production:/:text[/:long]")
+@UrlParameterMapping(":mode/:text[/:long]")
 // Match "debug/blablabla" or "debug/blabla/bla"
 @UrlParameterMapping("debug/:text:.*:")
 // Match "uuid/123e4567-e89b-12d3-a456-426655440000"
@@ -27,24 +27,29 @@ public class DemoView extends HorizontalLayout implements HasUrlParameterMapping
     private TextField patternField;
     private TextField longField;
     private TextField textField;
+
     private TextField modeField;
     private TextField uuidField;
 
+    @UrlParameter(regEx = "test|production")
     public void setMode(String modeParam) {
         modeField.setEnabled(modeParam != null);
         modeField.setValue(modeParam == null ? "<null>" : modeParam);
     }
 
+    @UrlParameter
     public void setLong(Long longParam) {
         longField.setEnabled(longParam != null);
         longField.setValue(longParam == null ? "<null>" : longParam.toString());
     }
 
+    @UrlParameter
     public void setText(String textParam) {
         textField.setEnabled(textParam != null);
         textField.setValue(textParam == null ? "<null>" : textParam);
     }
 
+    @UrlParameter
     public void setUuid(UUID uuidParam) {
         uuidField.setEnabled(uuidParam != null);
         uuidField.setValue(uuidParam == null ? "<null>" : uuidParam.toString());
@@ -55,7 +60,7 @@ public class DemoView extends HorizontalLayout implements HasUrlParameterMapping
         VerticalLayout right = new VerticalLayout();
         left.add(new Html("<pre><code>@UrlParameterMapping(\":long\")\n" +
                 "@UrlParameterMapping(\":text\")\n" +
-                "@UrlParameterMapping(\":mode:test|production:/:text[/:long]\")\n" +
+                "@UrlParameterMapping(\":mode/:text[/:long]\")\n" +
                 "@UrlParameterMapping(\"debug/:text:.*:\")\n" +
                 "@UrlParameterMapping(\"uuid/:uuid\")</code></pre>"));
 
