@@ -30,7 +30,8 @@ import org.vaadin.flow.helper.*;
 
 @Route("example")
 @UrlParameterMapping(":exampleId/:orderId")
-// Will match /example/12345 and call setExampleId(12345)
+// Will match /example/12345/ORD223434, set exampleId = 12345 and
+// call setOrder("ORD223434")
 // Otherwise user will be rerouted to default NotFoundException view
 class MyView extends Div implements HasUrlParameterMapping {
     // Note: parameter fields/setters should be public    
@@ -118,27 +119,27 @@ Multiple mappings are supported:
 
 It is also possible to check which of patterns matched:
 ```java
- @Route(...)
- @UrlParameterMapping(SomeView.ORDER_VIEW)
- @UrlParameterMapping(SomeView.ORDER_EDIT)
- class SomeView extends Div implements HasUrlParameterMapping {
-     final static String ORDER_VIEW = ":orderId[/view]";
-     final static String ORDER_EDIT = ":orderId/edit";
- 
-     @UrlParameter(name = "orderId")
-     public void setOrder(Integer orderId) { ... }
- 
-     @Override
-     public void beforeEnter(BeforeEnterEvent event) {
-         if ( isPatternMatched(ORDER_VIEW) ) {
-             ...
-         } else {
-             ...
-         }
-     }
- 
-     ...
- }
+@Route(...)
+@UrlParameterMapping(SomeView.ORDER_VIEW)
+@UrlParameterMapping(SomeView.ORDER_EDIT)
+class SomeView extends Div implements HasUrlParameterMapping {
+    final static String ORDER_VIEW = ":orderId[/view]";
+    final static String ORDER_EDIT = ":orderId/edit";
+
+    @UrlParameter(name = "orderId")
+    public void setOrder(Integer orderId) { ... }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if ( isPatternMatched(ORDER_VIEW) ) {
+            ...
+        } else {
+            ...
+        }
+    }
+
+    ...
+}
 ```
 
 If no matches are detected, automatic `rerouteToError(NotFoundException.class)` will
