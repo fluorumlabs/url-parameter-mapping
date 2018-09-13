@@ -11,7 +11,7 @@ import org.vaadin.flow.helper.internal.UrlParameterMappingHelper;
  * <p>
  * Interface expects you to have implemented setters for all mapped properties. The implementation
  * first sets all matched properties to their corresponding values and then clears all not matched
- * to {@code null}. The order in which those properties are set and cleared is undefined.
+ * to <tt>null</tt>. The order in which those properties are set and cleared is undefined.
  * <p>
  * You don't need to override {@link #setParameter(BeforeEvent, String)} method, the default
  * implementation takes care of everything.

@@ -1,7 +1,11 @@
 package org.vaadin.flow.helper;
 
 /**
- * Created by Artem Godin on 11/09/18.
+ * Exception thrown when parameter mapping cannot be established
+ *
+ * @author Artem Godin
+ * @see UrlParameter
+ * @see UrlParameterMapping
  */
 public class UrlParameterMappingException extends RuntimeException {
     /**

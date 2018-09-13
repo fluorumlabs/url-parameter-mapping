@@ -195,7 +195,7 @@ public class UrlParameterMappingHelper {
      *
      * @param pattern     pattern
      * @param input       input string
-     * @param replacement replacement function converting String[] of groups to String. If function returns null, the
+     * @param replacement replacement function converting <tt>String[]</tt> of groups to String. If function returns null, the
      *                    match is simply removed from the result
      * @return input string with all replacements applied
      */

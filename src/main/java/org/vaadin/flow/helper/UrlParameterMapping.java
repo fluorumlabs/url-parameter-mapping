@@ -4,42 +4,43 @@ import java.lang.annotation.*;
 
 /**
  * Define a path/parameter pattern with property mappings. Usage:
- * <pre><code>@UrlParameterMapping("segment/:parameter:regex:[/:optional_parameter]")</code></pre>
+ * <code>&#064;UrlParameterMapping("segment/:parameter:regex:[/:optional_parameter]")</code>
  * Pattern can have one or several terms. Patterns are always expected to match entire path.
- *
+ * <p>
  * If multiple patterns are matching, the first matched defined pattern is used.
- *
+ * <p>
  * The following term types are available:
- *
- * <strong>Static segment: <pre>segment</pre></strong>
- *
- * Example: <pre>"test"</pre> will match only <pre>/test</pre>. It will not match <pre>/testing</pre>.
- *
- * <strong>Parameter mapping: <pre>:parameter</pre></strong>
- * Parameter is field/method annotated with {@link UrlParameter} that will receive the value if matched or {@code null} otherwise. Only
- * {@code String}, {@code Long}, {@code Integer} and {@code Boolean} properties are supported. It is possible
+ * <p>
+ * <strong>Static segment: <tt>segment</tt></strong>
+ * <p>
+ * Example: <tt>"test"</tt> will match only <tt>/test</tt>. It will not match <tt>/testing</tt>.
+ * <p>
+ * <strong>Parameter mapping: <tt>:parameter</tt></strong>
+ * <p>
+ * Parameter is field/method annotated with {@link UrlParameter} that will receive the value if matched or <tt>null</tt> otherwise. Only
+ * {@link String}, {@link Long}, {@link Integer} and {@link Boolean} properties are supported. It is possible
  * to specify custom regular expressions either with {@link UrlParameter#regEx()} or with extended syntax:
- * <pre>:parameter:regular-expression:</pre>.
- *
- * Example 1: <pre>"entry/:id"</pre> will match <pre>/entry/12345</pre> and will not match
- * <pre>/entry/12345/edit</pre> or <pre>/entry/12345a</pre>. Integer property {@code id} will receive the value of {@code "12345"}.
- *
- * Example 2: <pre>"blog/:title</pre> will match <pre>/blog/random-title</pre> and will not match
- * <pre>/blog/random-title/with/segments</pre>. String property {@code title} will receive the value of {@code "random-title"}.
- *
- * Example 3: <pre>"blog/:title:.*:</pre> will match <pre>/blog/random-title</pre> and <pre>/blog/random-title/with/segments</pre>.
- * String property {@code title} will receive values of {@code "random-title"} and {@code "random-title/with/segments"} correspondingly.
- *
- * It is possible to define optional parameters using <pre>[/...]</pre> syntax:
- *
- * Example: <pre>"thread/:id[/:message]"</pre> will match:
+ * <tt>:parameter:regular-expression:</tt>.
+ * <p>
+ * Example 1: <tt>"entry/:id"</tt> will match <tt>/entry/12345</tt> and will not match
+ * <tt>/entry/12345/edit</tt> or <tt>/entry/12345a</tt>. Integer property <tt>id</tt> will receive the value of <tt>12345</tt>.
+ * <p>
+ * Example 2: <tt>"blog/:title"</tt> will match <tt>/blog/random-title</tt> and will not match
+ * <tt>/blog/random-title/with/segments</tt>. String property <tt>title</tt> will receive the value of <tt>"random-title"</tt>.
+ * <p>
+ * Example 3: <tt>"blog/:title:.*:"</tt> will match <tt>/blog/random-title</tt> and <tt>/blog/random-title/with/segments</tt>.
+ * String property <tt>title</tt> will receive values of <tt>"random-title"</tt> and <tt>"random-title/with/segments"</tt> correspondingly.
+ * <p>
+ * It is possible to define optional parameters using <tt>[/...]</tt> syntax:
+ * <p>
+ * Example: <tt>"thread/:id[/:message]"</tt> will match:
  * <ul>
- * <li><pre>/thread/12345</pre>:
- * Integer {@code id} will receive value of {@code "12345"},
- * Integer {@code message} will receive value of {@code null}</li>
- * <li><pre>/thread/12345/6789</pre>:
- * {@code id} will receive value of {@code "12345"},
- * {@code message} will receive value of {@code "6789"}</li>
+ * <li><tt>/thread/12345</tt>:
+ * Integer <tt>id</tt> will receive value of <tt>12345</tt>,
+ * Integer <tt>message</tt> will receive value of <tt>null</tt></li>
+ * <li><tt>/thread/12345/6789</tt>:
+ * <tt>id</tt> will receive value of <tt>12345</tt>,
+ * <tt>message</tt> will receive value of <tt>6789</tt></li>
  * </ul>
  *
  * @author Artem Godin

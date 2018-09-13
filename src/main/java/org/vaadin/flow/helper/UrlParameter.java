@@ -7,18 +7,18 @@ import java.lang.annotation.*;
  * <p>
  * Example use:
  * <pre><code>
- *     @UrlParameter(name = "user", regEx = "[0-9]{6}")
- *     public Integer userId;
+ * &#064;UrlParameter(name = "user", regEx = "[0-9]{6}")
+ * public Integer userId;
  *
- *     @UrlParameter
- *     public setProduct(String product) { ... }
+ * &#064;UrlParameter
+ * public setProduct(String product) { ... }
  * </code></pre>
  * <p>
- * If {@code name} is not specified, the field name is used, or, in case of setter method,
- * the corresponding property name (i.e. "product" for "setProduct").
+ * If <tt>name</tt> is not specified, the field name is used, or, in case of setter method,
+ * the corresponding property name (i.e. <tt>"product"</tt> for <tt>"setProduct"</tt>).
  * <p>
- * Optional {@code regEx} allows to specify custom regular expressions to be used for capturing
- * parameters. If {@code regEx} is not specified, the default regular expression based on parameter
+ * Optional <tt>regEx</tt> allows to specify custom regular expressions to be used for capturing
+ * parameters. If <tt>regEx</tt> is not specified, the default regular expression based on parameter
  * type is used.
  * <p>
  * Fields and methods to be used as parameters should be declared public.

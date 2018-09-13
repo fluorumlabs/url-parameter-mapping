@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 class Mapping {
     /**
      * Exception class to be used when no matches are detected.
-     * No {@code rerouteToError} will be called when {@code rerouteException == null}
+     * No <tt>rerouteToError</tt> will be called when <tt>rerouteException == null</tt>
      */
     Class<? extends Exception> rerouteException = NotFoundException.class;
 
@@ -86,7 +86,7 @@ class Mapping {
         private final Method setter;
 
         /**
-         * Helper value for calling {@code Method.invoke} with {@code null} argument
+         * Helper value for calling {@link Method#invoke(Object, Object...)} with <tt>null</tt> argument
          */
         private static final Object[] NULL_ARGUMENT = new Object[]{null};
 
@@ -147,7 +147,7 @@ class Mapping {
         }
 
         /**
-         * Set specified non-primitive parameter to {@code null} value
+         * Set specified non-primitive parameter to <tt>null</tt> value
          *
          * @param that class implementing {@link HasUrlParameterMapping}
          * @throws UrlParameterMappingException if there was an error
