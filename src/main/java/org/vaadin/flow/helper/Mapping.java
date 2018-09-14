@@ -1,20 +1,17 @@
-package org.vaadin.flow.helper.internal;
+package org.vaadin.flow.helper;
 
 import com.vaadin.flow.router.NotFoundException;
-import org.vaadin.flow.helper.HasUrlParameterMapping;
-import org.vaadin.flow.helper.UrlParameter;
-import org.vaadin.flow.helper.UrlParameterMapping;
-import org.vaadin.flow.helper.UrlParameterMappingException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
- * Internal representation of view mappings
+ * Internal representation of mappings
  *
  * @author Artem Godin
  * @see UrlParameterMappingHelper
@@ -30,6 +27,16 @@ class Mapping {
      * Compiled regular expression for all mappings
      */
     Pattern compiledPattern;
+
+    /**
+     * Combined regular expression for all mappings
+     */
+    String pattern;
+
+    /**
+     * <tt>true</tt> if this mapping has parameters with dynamically computed regexp
+     */
+    boolean hasDynamicRegex = false;
 
     /**
      * Distinct mapping patterns
@@ -73,17 +80,27 @@ class Mapping {
         /**
          * Value type
          */
-        private final Class<?> type;
+        private Class<?> type;
 
         /**
          * Field holding a value
          */
-        private final Field field;
+        private Field field;
 
         /**
          * Setter method used to set a value
          */
-        private final Method setter;
+        private Method setter;
+
+        /**
+         * <tt>true</tt> if parameter regular expression needs to be dynamically computed
+         */
+        boolean dynamic;
+
+        /**
+         * Producer for dynamic regular expressions
+         */
+        Function<Object, String> regexProducer;
 
         /**
          * Helper value for calling {@link Method#invoke(Object, Object...)} with <tt>null</tt> argument
@@ -94,32 +111,37 @@ class Mapping {
          * Construct parameter with specified field
          *
          * @param field field
+         * @param dynamic <tt>true</tt> if regexp is dynamically computed
          */
-        Parameter(Field field) {
+        Parameter(Field field, boolean dynamic) {
             this.type = field.getType();
             this.field = field;
             this.setter = null;
+            this.dynamic = dynamic;
         }
 
         /**
          * Construct parameter with specified setter method
          *
          * @param setter setter method
+         * @param dynamic <tt>true</tt> if regexp is dynamically computed
          */
-        Parameter(Method setter) {
+        Parameter(Method setter, boolean dynamic) {
             this.type = setter.getParameterTypes()[0];
             this.field = null;
             this.setter = setter;
+            this.dynamic = dynamic;
         }
+
 
         /**
          * Get regular expression specified with {@link UrlParameter} annotation or default
          * one based on the field/setter type
          *
-         * @param that class implementing {@link HasUrlParameterMapping}
+         * @param clazz class with {@link UrlParameter} annotated methods/fields
          * @throws UrlParameterMappingException if there was an error
          */
-        String getRegex(HasUrlParameterMapping that) {
+        String getRegex(Class<?> clazz) {
             if (setter != null) {
                 UrlParameter annotation = setter.getAnnotation(UrlParameter.class);
                 if (annotation != null && !annotation.regEx().isEmpty()) return annotation.regEx();
@@ -142,23 +164,23 @@ class Mapping {
             } else {
                 throw new UrlParameterMappingException(String.format(
                         "Unsupported parameter type '%s' for class %s.",
-                        type, that.getClass().getSimpleName()));
+                        type, clazz.getSimpleName()));
             }
         }
 
         /**
          * Set specified non-primitive parameter to <tt>null</tt> value
          *
-         * @param that class implementing {@link HasUrlParameterMapping}
+         * @param that instance of class with {@link UrlParameter} annotated methods/fields
          * @throws UrlParameterMappingException if there was an error
          */
-        void clear(HasUrlParameterMapping that) {
+        void clear(Object that) {
             try {
-                if (!type.isPrimitive()) {
+                if (type != null && !type.isPrimitive()) {
                     if (setter != null) {
                         setter.invoke(that, NULL_ARGUMENT);
                     } else if (field != null) {
-                        field.set(that, null);
+                        field.set(that, NULL_ARGUMENT);
                     }
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
@@ -171,11 +193,11 @@ class Mapping {
         /**
          * Set specified bean property or field value
          *
-         * @param that  class implementing {@link HasUrlParameterMapping}
+         * @param that  instance of class with {@link UrlParameter} annotated methods/fields
          * @param value value to set. It will be converted to the parameter type.
          * @throws UrlParameterMappingException if there was an error
          */
-        void set(HasUrlParameterMapping that, String value) {
+        void set(Object that, String value) {
             try {
                 if (setter != null) {
                     if (type.isAssignableFrom(String.class)) {

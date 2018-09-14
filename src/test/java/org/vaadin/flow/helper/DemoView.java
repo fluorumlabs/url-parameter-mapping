@@ -4,8 +4,6 @@ import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 
@@ -23,7 +21,7 @@ import java.util.UUID;
 // Match "uuid/123e4567-e89b-12d3-a456-426655440000"
 @UrlParameterMapping("uuid/:uuid")
 @IgnoreIfNotMatched
-public class DemoView extends HorizontalLayout implements HasUrlParameterMapping, BeforeEnterObserver {
+public class DemoView extends HorizontalLayout implements HasUrlParameterMapping {
     private TextField patternField;
     private TextField longField;
     private TextField textField;
@@ -37,13 +35,13 @@ public class DemoView extends HorizontalLayout implements HasUrlParameterMapping
         modeField.setValue(modeParam == null ? "<null>" : modeParam);
     }
 
-    @UrlParameter
+    @UrlParameter()
     public void setLong(Long longParam) {
         longField.setEnabled(longParam != null);
         longField.setValue(longParam == null ? "<null>" : longParam.toString());
     }
 
-    @UrlParameter
+    @UrlParameter()
     public void setText(String textParam) {
         textField.setEnabled(textParam != null);
         textField.setValue(textParam == null ? "<null>" : textParam);
@@ -53,6 +51,11 @@ public class DemoView extends HorizontalLayout implements HasUrlParameterMapping
     public void setUuid(UUID uuidParam) {
         uuidField.setEnabled(uuidParam != null);
         uuidField.setValue(uuidParam == null ? "<null>" : uuidParam.toString());
+    }
+
+    @UrlMatchedPatternParameter
+    public void setPattern(String pattern) {
+        patternField.setValue(pattern == null ? "< no match == null >" : pattern);
     }
 
     public DemoView() {
@@ -101,15 +104,5 @@ public class DemoView extends HorizontalLayout implements HasUrlParameterMapping
 
         right.add(patternField, modeField, longField, textField, uuidField);
         add(left, right);
-    }
-
-    /**
-     * Method called before navigation to attaching Component chain is made.
-     *
-     * @param event before navigation event with event details
-     */
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        patternField.setValue(getMatchedPattern() == null ? "< no match == null >" : getMatchedPattern());
     }
 }

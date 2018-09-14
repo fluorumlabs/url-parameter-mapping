@@ -2,7 +2,6 @@ package org.vaadin.flow.helper;
 
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.WildcardParameter;
-import org.vaadin.flow.helper.internal.UrlParameterMappingHelper;
 
 /**
  * Helper interface that enables use of {@link UrlParameterMapping} annotation. This interface
@@ -30,7 +29,7 @@ public interface HasAbsoluteUrlParameterMapping extends HasUrlParameterMapping {
      */
     @Override
     default void setParameter(BeforeEvent event, @WildcardParameter String parameter) {
-        UrlParameterMappingHelper.match(event, this, event.getLocation().getPath());
+        UrlParameterMappingHelper.matchAndReroute(event, this, event.getLocation().getPath());
     }
 
 }

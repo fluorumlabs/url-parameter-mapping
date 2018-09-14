@@ -1,6 +1,7 @@
 package org.vaadin.flow.helper;
 
 import java.lang.annotation.*;
+import java.util.function.Function;
 
 /**
  * Mark field or setter method for use in {@link UrlParameterMapping}.
@@ -22,6 +23,12 @@ import java.lang.annotation.*;
  * type is used.
  * <p>
  * Fields and methods to be used as parameters should be declared public.
+ *
+ * Special construct can be used to store the matched pattern:
+ * <pre><code>
+ * &#064;UrlParameter(type = UrlParameter.Type.MATCHED_PATTERN)
+ * String matchedPattern;
+ * </code></pre>
  *
  * @author Artem Godin
  * @see UrlParameterMapping
@@ -46,4 +53,12 @@ public @interface UrlParameter {
      * @return regular expression. If not specified, type-based regular expression will be used.
      */
     String regEx() default "";
+
+    /**
+     * Indicate that the regular expression for this parameter is computed dynamically. Use
+     * {@link UrlParameterMappingHelper#setDynamicRegex(Class, String, Function)} to set the actual producer
+     *
+     * @return <tt>true</tt> if parameter's regex is dynamically computed
+     */
+    boolean dynamicRegEx() default false;
 }
