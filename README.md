@@ -1,3 +1,6 @@
+[![Published on Vaadin  Directory](https://img.shields.io/badge/Vaadin%20Directory-published-00b4f0.svg)](https://vaadin.com/directory/component/url-parameter-mapping)
+[![Stars on vaadin.com/directory](https://img.shields.io/vaadin-directory/star/url-parameter-mapping.svg)](https://vaadin.com/directory/component/url-parameter-mapping)
+
 # URL Parameter Mapping for Vaadin Flow
 
 While https://github.com/vaadin/flow/issues/2740 and 
