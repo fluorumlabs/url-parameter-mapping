@@ -185,7 +185,7 @@ class DownloadRequestHandler implements RequestHandler {
 		VaadinServletRequest servletRequest = (VaadinServletRequest) request;
         ParameterMapping mapping = new ParameterMapping();
 		
-        if ( UrlParameterMappingHelper.match(mapping, servletRequest.getRequestURI())) {
+        if ( !UrlParameterMappingHelper.match(mapping, servletRequest.getRequestURI())) {
             return false;
         }
         
