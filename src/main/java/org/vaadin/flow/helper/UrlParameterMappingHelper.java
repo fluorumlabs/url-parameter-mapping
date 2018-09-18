@@ -46,8 +46,12 @@ public class UrlParameterMappingHelper {
     static boolean matchAndReroute(BeforeEvent event, Object that, String path) {
         Mapping mapping = getMapping(that.getClass());
         boolean hasMatch = match(mapping, that, path);
-        if (!hasMatch && mapping.rerouteException != null) {
-            event.rerouteToError(mapping.rerouteException);
+        if (!hasMatch) {
+            if (mapping.rerouteView != RerouteIfNotMatched.NoView.class) {
+                event.rerouteTo(mapping.rerouteView);
+            } else if (mapping.rerouteException != RerouteIfNotMatched.NoException.class) {
+                event.rerouteToError(mapping.rerouteException);
+            }
         }
         return hasMatch;
     }
@@ -180,10 +184,16 @@ public class UrlParameterMappingHelper {
             Mapping mapping = new Mapping();
 
             Optional.ofNullable(clazz.getAnnotation(RerouteIfNotMatched.class))
-                    .ifPresent(rerouteIfNotMatched -> mapping.rerouteException = rerouteIfNotMatched.value());
+                    .ifPresent(rerouteIfNotMatched -> {
+                        mapping.rerouteException = rerouteIfNotMatched.exception();
+                        mapping.rerouteView = rerouteIfNotMatched.view();
+                    });
 
             Optional.ofNullable(clazz.getAnnotation(IgnoreIfNotMatched.class))
-                    .ifPresent(ignoreIfNotMatched -> mapping.rerouteException = null);
+                    .ifPresent(rerouteIfNotMatched -> {
+                        mapping.rerouteException = RerouteIfNotMatched.NoException.class;
+                        mapping.rerouteView = RerouteIfNotMatched.NoView.class;
+                    });
 
             collectUrlParameters(mapping, clazz);
 
@@ -277,7 +287,7 @@ public class UrlParameterMappingHelper {
         mappingPattern.index = index;
 
         // Add leading / for simplicity
-        if (!routePattern.startsWith("/")) routePattern = "/" + routePattern;
+        if (!routePattern.startsWith("/") && !routePattern.startsWith("[/")) routePattern = "/" + routePattern;
 
         // Expand parameter mapping without regex:
         // /:param will become /:param:<regex> based on property type

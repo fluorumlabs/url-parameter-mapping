@@ -18,7 +18,7 @@ Installing with Maven:
 <dependency>
    <groupId>org.vaadin.helper</groupId>
    <artifactId>url-parameter-mapping</artifactId>
-   <version>1.0.0-alpha4</version>
+   <version>1.0.0-alpha5</version>
 </dependency>
 ```
 
@@ -170,16 +170,19 @@ class SomeView extends Div implements HasUrlParameterMapping {
 
 URL parameter matching could also be used for Vaadin `RequestHandler`:
 ```java
-@UrlParameterMapping("download/:uuid")
 class DownloadRequestHandler implements RequestHandler {
-    @UrlParameter()
-    UUID uuid;
+    @UrlParameterMapping("download/:uuid")
+    public class ParameterMapping {
+        @UrlParameter()
+        public UUID uuid;
+    }
 
     boolean handleRequest(VaadinSession session, VaadinRequest request,
                 VaadinResponse response) throws IOException {
 		VaadinServletRequest servletRequest = (VaadinServletRequest) request;
-        
-        if ( UrlParameterMappingHelper.match(this, servletRequest.getRequestURI())) {
+        ParameterMapping mapping = new ParameterMapping();
+		
+        if ( UrlParameterMappingHelper.match(mapping, servletRequest.getRequestURI())) {
             return false;
         }
         
@@ -189,10 +192,10 @@ class DownloadRequestHandler implements RequestHandler {
 ```
 
 If no matches are detected, automatic `rerouteToError(NotFoundException.class)` will
-be performed. It's possible to use custom exception using `@RerouteIfNotMatched(...)` 
+be performed. It's possible to use custom exception or view using `@RerouteIfNotMatched(...)` 
 annotation, or disable this feature completely using `@IgnoreIfNotMatched` annotation.
 In this case you can check if there were any matches using 
-`@UrlParameter(type = UrlParameter.Type.MATCHED_PATTERN)` annotated field/setter.
+`@UrlMatchedPatternParameter` annotated field/setter.
 
 When no custom regular expression is specified, it is automatically derived
 from field/method type:

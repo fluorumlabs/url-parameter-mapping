@@ -1,5 +1,6 @@
 package org.vaadin.flow.helper;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.router.NotFoundException;
 
 import java.lang.reflect.Field;
@@ -22,6 +23,7 @@ class Mapping {
      * No <tt>rerouteToError</tt> will be called when <tt>rerouteException == null</tt>
      */
     Class<? extends Exception> rerouteException = NotFoundException.class;
+    Class<? extends Component> rerouteView = RerouteIfNotMatched.NoView.class;
 
     /**
      * Compiled regular expression for all mappings
@@ -180,7 +182,7 @@ class Mapping {
                     if (setter != null) {
                         setter.invoke(that, NULL_ARGUMENT);
                     } else if (field != null) {
-                        field.set(that, NULL_ARGUMENT);
+                        field.set(that, NULL_ARGUMENT[0]);
                     }
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {

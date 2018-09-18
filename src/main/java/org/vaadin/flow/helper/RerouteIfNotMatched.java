@@ -1,14 +1,12 @@
 package org.vaadin.flow.helper;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.router.NotFoundException;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * Define a <tt>rerouteToError</tt> exception, which will be used if no matches
+ * Define a <tt>rerouteTo</tt> view/<tt>rerouteToError</tt> exception, which will be used if no matches
  * are detected. Defaults to {@link NotFoundException}
  * <p>
  * Usage:
@@ -27,11 +25,25 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
+@Inherited
 public @interface RerouteIfNotMatched {
+    /**
+     * Gets the redirection view of the annotated class.
+     *
+     * @return view to which <tt>event.rerouteTo</tt> should be called
+     */
+    Class<? extends Component> view() default NoView.class;
+
     /**
      * Gets the defined exception of the annotated class.
      *
      * @return exception with which <tt>event.rerouteToError</tt> should be called
      */
-    Class<? extends Exception> value() default NotFoundException.class;
+    Class<? extends Exception> exception() default NotFoundException.class;
+
+    abstract class NoView extends Component {
+    }
+
+    abstract class NoException extends Exception {
+    }
 }
