@@ -241,6 +241,24 @@ class Mapping {
             }
         }
 
+        String get(Object that) {
+            try {
+                if (field != null) {
+                    Object value = field.get(that);
+                    return (value == null) ? null : value.toString();
+                } else {
+                    throw new UrlParameterMappingException(String.format(
+                            "Error getting parameter in class %s: only fields are supported.",
+                            that.getClass().getSimpleName()));
+                }
+            } catch (IllegalAccessException e) {
+                throw new UrlParameterMappingException(String.format(
+                        "Error getting parameter in class %s.",
+                        that.getClass().getSimpleName()), e);
+            }
+
+        }
+
     }
 
 }

@@ -41,9 +41,15 @@ public @interface RerouteIfNotMatched {
      */
     Class<? extends Exception> exception() default NotFoundException.class;
 
+    /**
+     * Dummy component class for use as {@link RerouteIfNotMatched#view()} value.
+     */
     abstract class NoView extends Component {
     }
 
+    /**
+     * Dummy exception class for use as {@link RerouteIfNotMatched#exception()} value.
+     */
     abstract class NoException extends Exception {
     }
 }

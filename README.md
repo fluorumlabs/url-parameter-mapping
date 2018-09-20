@@ -21,7 +21,7 @@ Installing with Maven:
 <dependency>
    <groupId>org.vaadin.helper</groupId>
    <artifactId>url-parameter-mapping</artifactId>
-   <version>1.0.0-alpha5</version>
+   <version>1.0.0-alpha6</version>
 </dependency>
 ```
 
@@ -169,6 +169,24 @@ class SomeView extends Div implements HasUrlParameterMapping {
 
     ...
 }
+```
+
+URL formatting
+```java
+@UrlParameter
+public Integer orderId = 12345;
+
+@UrlParameter
+public Integer orderRowId = null;
+
+...
+
+String url = UrlParameterMappingHelper.format(this,"order/:orderId[/:orderRowId]/:1", "edit");
+// url = "order/12345/edit"
+
+orderRowId = 78;
+String url2 = UrlParameterMappingHelper.format(this,"order/:orderId[/:orderRowId]/:1", "edit");
+// url = "order/12345/78/edit"
 ```
 
 URL parameter matching could also be used for Vaadin `RequestHandler`:

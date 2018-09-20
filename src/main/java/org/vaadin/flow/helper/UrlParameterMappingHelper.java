@@ -80,6 +80,52 @@ public class UrlParameterMappingHelper {
     }
 
     /**
+     * Format path with parameters. Format syntax is similar to {@link UrlParameterMapping}, with the addition of numbered arguments
+     * that can be passed. For example,
+     * <pre><code>
+     *     UrlParameterMappingHelper.format(this, "order/:orderId[/:orderRawId]/:1", tabId)
+     * </code></pre>
+     * with <tt>tabId = "edit"</tt> will use <tt>orderId</tt> and <tt>orderRawId</tt> fields annotated with {@link UrlParameter} and
+     * produce <tt>"order/12345/edit"</tt> or <tt>"order/12345/45/edit"</tt> depending on whether <tt>orderRawId</tt> was set or not.
+     * <p>
+     * Note 1: no inline regular expressions are allowed
+     * <p>
+     * Note 2: only fields may be used
+     *
+     * @param that      instance of class annotated with {@link UrlParameterMapping}
+     * @param format    format string
+     * @param arguments optional string arguments. Those can be used with <tt>/:1</tt>..<tt>/:99</tt> notation (one-based indexing).
+     * @return formatted string
+     */
+    public static String format(Object that, String format, String... arguments) {
+        Mapping mapping = getMapping(that.getClass());
+        String formattedPath = replaceFunctional(PARAMETER_SIMPLE_FORMAT_PATTERN, format, matches -> {
+            String parameterName = matches[2];
+            String value;
+            if (Character.isDigit(parameterName.charAt(0))) {
+                int index = Integer.valueOf(parameterName) - 1;
+                if (index < 0 || index > arguments.length) {
+                    throw new UrlParameterMappingException(String.format("Replacement \":%s\" in \"%s\" is not present in arguments", parameterName, format));
+                }
+                value = arguments[index];
+            } else {
+                Parameter parameter = mapping.parameters.get(parameterName);
+                if (parameter == null) {
+                    throw new UrlParameterMappingException(String.format("Unknown parameter %s in format \"%s\" for class %s", parameterName, format, that.getClass().getSimpleName()));
+                }
+                value = parameter.get(that);
+            }
+            if (value == null) return "/\0";
+            return "/" + value;
+        });
+        formattedPath = replaceFunctional(OPTIONAL_FORMAT_PATTERN, formattedPath, matches -> matches[1].equals("\0") ? "" : "/" + matches[1]);
+        if (formattedPath.contains("\0")) {
+            throw new UrlParameterMappingException(String.format("Required parameter have null value for \"%s\": %s", format, formattedPath.replace("\0", "<null>")));
+        }
+        return formattedPath;
+    }
+
+    /**
      * Match patterns specified in {@link UrlParameterMapping} annotations to the supplied path
      * and update all associated properties.
      *
@@ -168,6 +214,8 @@ public class UrlParameterMappingHelper {
     private static Map<Class<?>, Mapping> mappings = new ConcurrentHashMap<>();
 
     private static final Pattern OPTIONAL_PATTERN = Pattern.compile("\\[/([^/]+)\\]");
+    private static final Pattern OPTIONAL_FORMAT_PATTERN = Pattern.compile("\\[\\/([^\\]]+)\\]");
+    private static final Pattern PARAMETER_SIMPLE_FORMAT_PATTERN = Pattern.compile("(/:)([\\d]+|[\\w]+)(?![\\w\\d:])");
     private static final Pattern PARAMETER_SIMPLE_PATTERN = Pattern.compile("(/:)([\\w]+)(?![\\w:])");
     private static final Pattern PARAMETER_FULL_PATTERN = Pattern.compile("(/:)([\\w]+):([^:]+):");
 
