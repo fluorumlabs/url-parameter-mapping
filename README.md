@@ -182,7 +182,7 @@ import org.vaadin.flow.helper.*;
 @UrlParameterMapping(queryParameters = { "exampleId=:exampleId", "mode=:mode" })
 @UrlParameterMapping(path = ":exampleId", queryParameters = { "mode=:mode" })
 // Will match /example/12345 and set exampleId to 12345, mode to null
-// Will also match /?exampleId=34567&mode=edit and set exampleId to 34567 and mode to "edit"
+// Will also match /example?exampleId=34567&mode=edit and set exampleId to 34567 and mode to "edit"
 class MyView extends Div implements HasUrlParameterMapping {
     @UrlParameter
     public Integer exampleId;
