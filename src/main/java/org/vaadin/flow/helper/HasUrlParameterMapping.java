@@ -7,7 +7,7 @@ import com.vaadin.flow.router.WildcardParameter;
 /**
  * Helper interface that enables use of {@link UrlParameterMapping} annotation. This interface
  * uses {@link WildcardParameter} parameter for matching. See {@link HasAbsoluteUrlParameterMapping}
- * if you need to perform matching of absolute path.
+ * if you need to perform matching of absolute path. Query parameters are also automatically supported.
  * <p>
  * Interface expects you to have implemented setters for all mapped properties. The implementation
  * first sets all matched properties to their corresponding values and then clears all not matched
@@ -29,6 +29,6 @@ public interface HasUrlParameterMapping extends HasUrlParameter<String> {
      */
     @Override
     default void setParameter(BeforeEvent event, @WildcardParameter String parameter) {
-        UrlParameterMappingHelper.matchAndReroute(event, this, parameter);
+        UrlParameterMappingHelper.matchAndReroute(event, this, parameter + "?" + event.getLocation().getQueryParameters().getQueryString());
     }
 }

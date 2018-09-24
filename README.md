@@ -21,7 +21,7 @@ Installing with Maven:
 <dependency>
    <groupId>org.vaadin.helper</groupId>
    <artifactId>url-parameter-mapping</artifactId>
-   <version>1.0.0-alpha6</version>
+   <version>1.0.0-alpha7</version>
 </dependency>
 ```
 
@@ -171,6 +171,27 @@ class SomeView extends Div implements HasUrlParameterMapping {
 }
 ```
 
+Query parameter handling
+```java
+import org.vaadin.flow.helper.*;
+
+...
+
+@Route("example")
+@UrlParameterMapping(queryParameters = { "exampleId=:exampleId", "mode=:mode" })
+@UrlParameterMapping(path = ":exampleId", queryParameters = { "mode=:mode" })
+// Will match /example/12345 and set exampleId to 12345, mode to null
+// Will also match /?exampleId=34567&mode=edit and set exampleId to 34567 and mode to "edit"
+class MyView extends Div implements HasUrlParameterMapping {
+    @UrlParameter
+    public Integer exampleId;
+    
+    @UrlParameter(regEx = "edit|preview")
+    public String mode;
+    ...
+}
+```
+
 URL formatting
 ```java
 @UrlParameter
@@ -216,11 +237,12 @@ If no matches are detected, automatic `rerouteToError(NotFoundException.class)` 
 be performed. It's possible to use custom exception or view using `@RerouteIfNotMatched(...)` 
 annotation, or disable this feature completely using `@IgnoreIfNotMatched` annotation.
 In this case you can check if there were any matches using 
-`@UrlMatchedPatternParameter` annotated field/setter.
+`@UrlMatchedPatternParameter` annotated field/setter. Note: query parameters are always optional
+and do not trigger rerouting.
 
 When no custom regular expression is specified, it is automatically derived
 from field/method type:
-- String: `[^/]+` -- anything up to next slash
+- String: `[^/^?^&]+` -- anything up to next `/`, `?` or `&`
 - Integer: `-?[0-1]?[0-9]{1,9}` -- `-1999999999` to `1999999999`
 - Long: `-?[0-8]?[0-9]{1,18}` -- `-8999999999999999999` to `8999999999999999999`
 - Boolean: `true|false`

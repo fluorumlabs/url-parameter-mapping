@@ -1,6 +1,8 @@
 package org.vaadin.flow.helper;
 
 import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.VaadinServletRequest;
 import org.vaadin.flow.helper.Mapping.Parameter;
 
 import java.util.*;
@@ -20,7 +22,8 @@ public class UrlParameterMappingHelper {
 
     /**
      * Match patterns specified in {@link UrlParameterMapping} annotations to the supplied path
-     * and update all associated properties.
+     * and update all associated properties. Path may also contain query parameters which would be
+     * matched against {@link UrlParameterMapping#queryParameters()}.
      *
      * @param that instance of class annotated with {@link UrlParameterMapping}
      * @param path path that should be matched.
@@ -29,6 +32,22 @@ public class UrlParameterMappingHelper {
     public static boolean match(Object that, String path) {
         Mapping mapping = getMapping(that.getClass());
         return match(mapping, that, path);
+    }
+
+    /**
+     * Match patterns specified in {@link UrlParameterMapping} annotations to the supplied path
+     * and update all associated properties. Path may also contain query parameters which would be
+     * matched against {@link UrlParameterMapping#queryParameters()}.
+     *
+     * @param that    instance of class annotated with {@link UrlParameterMapping}
+     * @param request VaadinRequest
+     * @return <tt>true</tt> if there is a matched pattern, <tt>false</tt> otherwise
+     */
+    public static boolean match(Object that, VaadinRequest request) {
+        VaadinServletRequest servletRequest = (VaadinServletRequest) request;
+        Mapping mapping = getMapping(that.getClass());
+        return match(mapping, that, servletRequest.getRequestURI()
+                + "?" + ((servletRequest.getQueryString() == null) ? "" : servletRequest.getQueryString()));
     }
 
     /**
@@ -139,6 +158,10 @@ public class UrlParameterMappingHelper {
         // Clean old matching pattern
         Set<String> unsetParameters = new HashSet<>(mapping.parameters.keySet());
 
+        // Add dummy query parameters
+        if (!path.contains("?")) path = path + "?";
+        if (!path.endsWith("&")) path = path + "&";
+
         Matcher matcher = getMatcher(mapping, that, path);
         if (matcher.find()) {
             result = true;
@@ -213,11 +236,11 @@ public class UrlParameterMappingHelper {
     // Complied parameter mappingPatterns go there
     private static Map<Class<?>, Mapping> mappings = new ConcurrentHashMap<>();
 
-    private static final Pattern OPTIONAL_PATTERN = Pattern.compile("\\[/([^/]+)\\]");
+    private static final Pattern OPTIONAL_PATTERN = Pattern.compile("\\[/([^/^\\[]+)\\]");
     private static final Pattern OPTIONAL_FORMAT_PATTERN = Pattern.compile("\\[\\/([^\\]]+)\\]");
     private static final Pattern PARAMETER_SIMPLE_FORMAT_PATTERN = Pattern.compile("(/:)([\\d]+|[\\w]+)(?![\\w\\d:])");
-    private static final Pattern PARAMETER_SIMPLE_PATTERN = Pattern.compile("(/:)([\\w]+)(?![\\w:])");
-    private static final Pattern PARAMETER_FULL_PATTERN = Pattern.compile("(/:)([\\w]+):([^:]+):");
+    private static final Pattern PARAMETER_SIMPLE_PATTERN = Pattern.compile("(/:|=:)([\\w]+)(?![\\w:])");
+    private static final Pattern PARAMETER_FULL_PATTERN = Pattern.compile("(/:|=:)([\\w]+):([^:]+):");
 
     private static final String MATCHED_PATTERN_PARAMETER = "[pattern]";
 
@@ -250,7 +273,7 @@ public class UrlParameterMappingHelper {
             StringBuilder patternBuilder = new StringBuilder();
             for (int i = 0; i < annotations.length; i++) {
                 // Each pattern will have unique id, that will be used for properties
-                computeMappingPattern(mapping, patternBuilder, clazz, i, annotations[i].value());
+                computeMappingPattern(mapping, patternBuilder, clazz, i, annotations[i].value(), annotations[i].queryParameters());
             }
 
             mapping.pattern = "^(" + patternBuilder.toString() + ")$";
@@ -322,7 +345,7 @@ public class UrlParameterMappingHelper {
      * @param index          index of {@link UrlParameterMapping} annotation, used for natural ordering
      * @param routePattern   pattern
      */
-    private static void computeMappingPattern(Mapping mapping, StringBuilder patternBuilder, Class<?> clazz, int index, String routePattern) {
+    private static void computeMappingPattern(Mapping mapping, StringBuilder patternBuilder, Class<?> clazz, int index, String routePattern, String[] queryParameters) {
         // Each pattern will have unique id, that will be used for properties
         String patternId = String.format("p%d", index);
 
@@ -336,6 +359,14 @@ public class UrlParameterMappingHelper {
 
         // Add leading / for simplicity
         if (!routePattern.startsWith("/") && !routePattern.startsWith("[/")) routePattern = "/" + routePattern;
+
+        StringBuilder queryParameterGroup = new StringBuilder("\\?((");
+        // Append query parameters
+        for (String queryParameter : queryParameters) {
+            queryParameterGroup.append("(").append(queryParameter).append(")|");
+        }
+        queryParameterGroup.append("(.*?))&)*");
+        routePattern = routePattern + queryParameterGroup;
 
         // Expand parameter mapping without regex:
         // /:param will become /:param:<regex> based on property type
@@ -352,7 +383,7 @@ public class UrlParameterMappingHelper {
             parameterRegEx.put(parameterName, matcher.group(3));
             mappingPattern.parameters.add(parameterName);
         }
-        routePattern = matcher.reset().replaceAll("/:$2");
+        routePattern = matcher.reset().replaceAll("$1$2");
 
         // Replace optional segments with proper regex:
         // [/...] will become (/...)?
@@ -374,7 +405,7 @@ public class UrlParameterMappingHelper {
                                                 "Unknown parameter '%s' in class %s.",
                                                 matches[2], clazz.getSimpleName()));
                                     }
-                                    return "/(?<" + patternId + matches[2] + ">"
+                                    return matches[1].substring(0, 1) + "(?<" + patternId + matches[2] + ">"
                                             + parameterRegEx.getOrDefault(matches[2], parameter.dynamic ? "" : parameter.getRegex(clazz))
                                             + ")";
                                 }

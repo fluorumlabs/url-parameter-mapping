@@ -154,7 +154,7 @@ class Mapping {
             }
 
             if (type.isAssignableFrom(String.class)) {
-                return "[^/]+";
+                return "[^/^?^&]+";
             } else if (type.isAssignableFrom(Integer.class)) {
                 return "-?[0-1]?[0-9]{1,9}"; // -1999999999 to 1999999999
             } else if (type.isAssignableFrom(Long.class)) {

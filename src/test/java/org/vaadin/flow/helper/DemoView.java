@@ -17,11 +17,11 @@ import java.util.UUID;
 // Match "test/abcde" or "production/abcde" or "test/abcde/12345" or "production/abcde/12345"
 @UrlParameterMapping(":mode/:text[/:long]")
 // Match "debug/blablabla" or "debug/blabla/bla"
-@UrlParameterMapping("debug/:text:.*:")
+@UrlParameterMapping(value = "debug/:text:.*?:", queryParameters = {"uuid=:uuid"})
 // Match "uuid/123e4567-e89b-12d3-a456-426655440000"
-@UrlParameterMapping("uuid/:uuid")
+@UrlParameterMapping(value = "uuid/:uuid", queryParameters = {"mode=:mode", "id=:long"})
 @IgnoreIfNotMatched
-public class DemoView extends HorizontalLayout implements HasUrlParameterMapping {
+public class DemoView extends HorizontalLayout implements HasAbsoluteUrlParameterMapping {
     private TextField patternField;
     private TextField longField;
     private TextField textField;
@@ -79,7 +79,7 @@ public class DemoView extends HorizontalLayout implements HasUrlParameterMapping
         left.add(new RouterLink("production/random", DemoView.class, "production/random"));
         left.add(new RouterLink("production/random/12345", DemoView.class, "production/random/12345"));
 
-        left.add(new Html("<div>Matching <code>debug/:text:.*:</code></div>"));
+        left.add(new Html("<div>Matching <code>debug/:text:.*?:</code></div>"));
         left.add(new RouterLink("debug/12345", DemoView.class, "debug/12345"));
 
         left.add(new Html("<div>Matching <code>uuid/:uuid</code></div>"));
