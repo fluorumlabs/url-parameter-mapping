@@ -168,8 +168,7 @@ public class UrlParameterMappingHelper {
             // There is 1+ match. Find a group that has the most properties.
             mapping.mappingPatterns.stream()
                     .filter(pattern -> matcher.group(pattern.id) != null)
-                    .sorted(Comparator.comparing(pattern -> pattern.index))
-                    .findFirst()
+                    .min(Comparator.comparing(pattern -> pattern.index))
                     .ifPresent(match -> {
                         Mapping.Parameter matchedPattern = mapping.parameters.get(MATCHED_PATTERN_PARAMETER);
                         if (matchedPattern != null) {

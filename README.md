@@ -22,7 +22,7 @@ Installing with Maven:
 <dependency>
    <groupId>org.vaadin.helper</groupId>
    <artifactId>url-parameter-mapping</artifactId>
-   <version>1.0.0-alpha7</version>
+   <version>1.0.0-beta1</version>
 </dependency>
 ```
 
